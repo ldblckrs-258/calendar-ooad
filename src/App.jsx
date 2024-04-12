@@ -67,7 +67,7 @@ function App() {
 			{popup !== 0 && (
 				<div
 					className="item-center fixed left-0 top-0 flex h-dvh w-dvw justify-center bg-[#00000050] p-16"
-					onClick={(e) => {
+					onMouseDown={(e) => {
 						if (e.target === e.currentTarget) {
 							setPopup(0)
 						}
