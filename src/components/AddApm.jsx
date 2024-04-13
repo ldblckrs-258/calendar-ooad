@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { fixTime, formatTime } from '../utils/dateTime'
+import { fixTime } from '../utils/dateTime'
+import ConflictTable from './ConflictTable'
 
 function AddApm() {
 	const currentDate = new Date()
@@ -14,7 +15,9 @@ function AddApm() {
 			.slice(11, 16),
 		isGroup: false,
 	})
-
+	const [GM, setGM] = useState()
+	const [popup, setPopup] = useState(0)
+	const [conflict, setConflict] = useState()
 	const token = sessionStorage.getItem('token')
 
 	const createApm = async () => {
@@ -39,14 +42,58 @@ function AddApm() {
 				setPopup(1)
 			} else if (response.status === 409) {
 				setConflict(data.data)
-				setPopup(2)
+				setPopup(3)
 			}
 		} catch (error) {
 			console.error('Error:', error)
+			alert('Error occurred, try again later')
+			window.location.reload()
 		}
 	}
 
+	const removeApm = async (id) => {
+		try {
+			const removeApm = await fetch(
+				`http://localhost:3002/apm/remove/${id}`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+				},
+			)
+			return removeApm
+		} catch (error) {
+			console.error('Error:', error)
+			alert('Error occurred, try again later')
+			window.location.reload()
+		}
+	}
+	const replaceApm = async (id) => {
+		try {
+			const removeApm = await removeApm(id)
+			if (removeApm.status === 404) {
+				await fetch(`http://localhost:3002/gmp/out/${id}`, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+				})
+				setPopup(0)
+			}
+		} catch (error) {
+			console.error('Error:', error)
+			alert('Error occurred, try again later')
+			window.location.reload()
+		}
+
+		await createApm()
+	}
+
 	const handleSubmit = async (e) => {
+		setGM()
 		e.preventDefault()
 		if (
 			newApm.title === '' ||
@@ -64,28 +111,66 @@ function AddApm() {
 			return
 		}
 
-		await createApm()
+		const GMData = await checkGMMatch()
+		setGM(GMData)
+		if (GMData) {
+			setPopup(3)
+		} else {
+			createApm()
+		}
 	}
-
-	const replaceApm = async (id) => {
+	const checkGMMatch = async () => {
 		try {
-			await fetch(`http://localhost:3002/apm/remove/${id}`, {
-				method: 'GET',
+			const response = await fetch('http://localhost:3002/apm/check', {
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: `Bearer ${token}`,
 				},
+				body: JSON.stringify({
+					title: newApm.title,
+					startTime: newApm.startTime,
+					endTime: newApm.endTime,
+				}),
 			})
+			const data = await response.json()
+			if (response.status === 200) {
+				return data.data
+			} else response.status === 404
+			return null
 		} catch (error) {
 			console.error('Error:', error)
+			return null
 		}
-
-		await createApm()
-		setConflict('')
 	}
 
-	const [popup, setPopup] = useState(0)
-	const [conflict, setConflict] = useState()
+	const joinGM = async (ampId) => {
+		try {
+			const response = await fetch(
+				`http://localhost:3002/gmp/create/${ampId}`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+				},
+			)
+			const data = await response.json()
+			if (response.status === 201) {
+				setPopup(1)
+			} else if (response.status === 409) {
+				setConflict(data.data)
+				setPopup(4)
+			} else {
+				console.log(data)
+			}
+		} catch (error) {
+			console.error('Error:', error)
+			alert('Error occurred, try again later')
+			window.location.reload()
+		}
+	}
 
 	return (
 		<div>
@@ -183,7 +268,7 @@ function AddApm() {
 						{popup === 1 && (
 							<div className="flex flex-col gap-5">
 								<p className="w-full text-center text-base ">
-									New appointment added successfully!
+									Successfully!
 								</p>
 								<button
 									className="w-[100px] self-center rounded bg-[#64CCDC] px-3 py-2 text-white"
@@ -193,92 +278,36 @@ function AddApm() {
 								</button>
 							</div>
 						)}
-
 						{popup === 2 && (
-							<div className="flex flex-col gap-5">
-								<p className="w-full text-center text-base ">
-									Conflict with existing appointment!
-								</p>
-								<table className="w-full bg-white text-sm">
-									<thead>
-										<tr>
-											<th className="bg-gray-200 p-2">
-												Title
-											</th>
-											<th className="bg-gray-200 p-2">
-												Location
-											</th>
-											<th className="bg-gray-200 p-2">
-												Date
-											</th>
-											<th className="bg-gray-200 p-2">
-												Start time
-											</th>
-											<th className="bg-gray-200 p-2">
-												End time
-											</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr
-											key={conflict.id}
-											className="bg-[#fcd3cc]"
-										>
-											<td className="border p-2">
-												{conflict.title}
-											</td>
-											<td className="border p-2">
-												{conflict.location}
-											</td>
-											<td className="border p-2">
-												{conflict.date}
-											</td>
-											<td className="border p-2">
-												{formatTime(conflict.startTime)}
-											</td>
-											<td className="border p-2">
-												{formatTime(conflict.endTime)}
-											</td>
-										</tr>
-										<tr
-											key={newApm.id}
-											className="bg-[#c6f7ff]"
-										>
-											<td className="border p-2">
-												{newApm.title}
-											</td>
-											<td className="border p-2">
-												{newApm.location}
-											</td>
-											<td className="border p-2">
-												{newApm.date}
-											</td>
-											<td className="border p-2">
-												{formatTime(newApm.startTime)}
-											</td>
-											<td className="border p-2">
-												{formatTime(newApm.endTime)}
-											</td>
-										</tr>
-									</tbody>
-								</table>
-								<div className="flex justify-around">
-									<button
-										className="w-[100px] self-center rounded bg-[#64CCDC] px-3 py-2 text-white"
-										onClick={() => {
-											replaceApm(conflict.id)
-										}}
-									>
-										Replace
-									</button>
-									<button
-										className="w-[100px] self-center rounded bg-[#FD8672] px-3 py-2 text-white"
-										onClick={() => setPopup(0)}
-									>
-										Close
-									</button>
-								</div>
-							</div>
+							<ConflictTable
+								conflict={conflict}
+								newApm={newApm}
+								onClose={() => setPopup(0)}
+								onReplace={() => replaceApm(conflict.id)}
+								popup={popup}
+							/>
+						)}
+						{popup === 3 && (
+							<ConflictTable
+								conflict={GM}
+								newApm={newApm}
+								onClose={() => setPopup(0)}
+								onReplace={() => joinGM(GM.id)}
+								onCreate={() => createApm()}
+								popup={popup}
+							/>
+						)}
+						{popup === 4 && (
+							<ConflictTable
+								conflict={conflict}
+								newApm={GM}
+								onClose={() => setPopup(0)}
+								onReplace={() => {
+									removeApm(conflict.id)
+									joinGM(GM.id)
+								}}
+								popup={popup}
+							/>
 						)}
 					</div>
 				</div>

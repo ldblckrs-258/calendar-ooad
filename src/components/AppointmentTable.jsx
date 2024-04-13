@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { PiTrashSimpleFill, PiArrowFatLinesRightFill } from 'react-icons/pi'
 import AddApm from './AddApm'
 import {
 	toISOTime,
@@ -39,6 +40,10 @@ function AppointmentTable() {
 	}
 
 	const handleRemove = async (id) => {
+		const ok = window.confirm(
+			'Are you sure you want to remove this appointment?',
+		)
+		if (!ok) return
 		try {
 			await fetch(`http://localhost:3002/apm/remove/${id}`, {
 				headers: {
@@ -98,6 +103,24 @@ function AppointmentTable() {
 				},
 			})
 			window.location.reload()
+		} catch (error) {
+			console.error('Error:', error)
+		}
+	}
+
+	const handleLeave = async (id) => {
+		const ok = window.confirm(
+			'Are you sure you want to leave this group meeting?',
+		)
+		if (!ok) return
+		try {
+			await fetch(`http://localhost:3002/gmp/out/${id}`, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			})
+			fetchAppointments()
 		} catch (error) {
 			console.error('Error:', error)
 		}
@@ -206,17 +229,22 @@ function AppointmentTable() {
 								</td>
 								<td className="border p-2">
 									<button
-										className={`m-auto flex h-5 w-5 items-end justify-center rounded-md text-sm leading-6 text-white ${apm.isOutdated ? 'bg-red-500' : 'bg-red-300'} ${!apm.own && 'cursor-not-allowed'}`}
+										className={`m-auto flex h-5 w-5 items-center justify-center rounded-full text-xs leading-6 text-white transition-all hover:scale-125 ${!apm.isOutdated && 'opacity-70'} ${apm.own ? 'bg-[#e63946]' : 'bg-[#f4a261]'} `}
 										onClick={() => {
 											if (apm.own) handleRemove(apm.id)
+											else handleLeave(apm.id)
 										}}
 										title={
 											apm.own
 												? 'Remove appointment'
-												: 'Not your appointment'
+												: 'Leave group meeting'
 										}
 									>
-										x
+										{apm.own ? (
+											<PiTrashSimpleFill />
+										) : (
+											<PiArrowFatLinesRightFill />
+										)}
 									</button>
 								</td>
 							</tr>
