@@ -11,7 +11,7 @@ Navbar.propTypes = {
 function Navbar({ userName, onSignin, onLogin, onLogout }) {
 	const [showMenu, setShowMenu] = useState(false)
 	return (
-		<nav className="fixed top-0 flex w-full items-center justify-between bg-white px-10 py-3">
+		<nav className="fixed top-0 z-10 flex w-full items-center justify-between bg-white px-10 py-3">
 			<div className="flex items-center gap-5">
 				<h1 className="text-2xl font-semibold">Calendar</h1>
 				<button

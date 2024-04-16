@@ -1,0 +1,8 @@
+.calendar td {
+	border: 1px solid #bbbbbb;
+	width: 14.28%;
+	height: 80px;
+	text-align: center;
+	position: relative;
+	cursor: pointer;
+}

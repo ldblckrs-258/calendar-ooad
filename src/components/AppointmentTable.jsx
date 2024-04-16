@@ -1,45 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { PiTrashSimpleFill, PiArrowFatLinesRightFill } from 'react-icons/pi'
-import AddApm from './AddApm'
+import propTypes from 'prop-types'
 import {
 	toISOTime,
 	formatTime,
 	minutesDuration,
 	timeBefore,
 } from '../utils/dateTime'
-import {
-	PiPlusCircleBold,
-	PiBellSimple,
-	PiBellRingingFill,
-} from 'react-icons/pi'
+import { PiBellSimple, PiBellRingingFill } from 'react-icons/pi'
 
-function AppointmentTable() {
-	const [userAppointments, setUserAppointments] = useState([])
-	const [createPopup, setCreatePopup] = useState(false)
-	const currentDate = new Date()
-	currentDate.setHours(currentDate.getHours() + 7)
+const AppointmentTable = ({ onReload, apmData }) => {
 	const token = sessionStorage.getItem('token')
 
-	useEffect(() => {
-		fetchAppointments()
-	}, [])
-
-	const fetchAppointments = async () => {
-		try {
-			const response = await fetch(`http://localhost:3002/apm/all`, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			})
-
-			const data = await response.json()
-			setUserAppointments(data.data)
-		} catch (error) {
-			console.error('Error:', error)
-		}
-	}
-
-	const handleRemove = async (id) => {
+	const handleRemoveApm = async (id) => {
 		const ok = window.confirm(
 			'Are you sure you want to remove this appointment?',
 		)
@@ -50,14 +23,14 @@ function AppointmentTable() {
 					Authorization: `Bearer ${token}`,
 				},
 			})
-			fetchAppointments()
+			onReload()
 		} catch (error) {
 			console.error('Error:', error)
 		}
-		fetchAppointments()
+		onReload()
 	}
 
-	const createReminder = async (apmId, apmTime) => {
+	const handleCreateReminder = async (apmId, apmTime) => {
 		const mins = prompt(
 			'Enter reminder time in minutes before the appointment',
 		)
@@ -80,7 +53,7 @@ function AppointmentTable() {
 				)
 				const data = await response.json()
 				if (response.status === 201) {
-					window.location.reload()
+					onReload()
 				} else {
 					console.log(data)
 				}
@@ -90,7 +63,7 @@ function AppointmentTable() {
 		}
 	}
 
-	const removeReminder = async (id) => {
+	const handleRemoveReminder = async (id) => {
 		const ok = window.confirm(
 			'Are you sure you want to remove this reminder?',
 		)
@@ -102,13 +75,13 @@ function AppointmentTable() {
 					Authorization: `Bearer ${token}`,
 				},
 			})
-			window.location.reload()
+			onReload()
 		} catch (error) {
 			console.error('Error:', error)
 		}
 	}
 
-	const handleLeave = async (id) => {
+	const handleLeaveGM = async (id) => {
 		const ok = window.confirm(
 			'Are you sure you want to leave this group meeting?',
 		)
@@ -120,7 +93,7 @@ function AppointmentTable() {
 					Authorization: `Bearer ${token}`,
 				},
 			})
-			fetchAppointments()
+			onReload()
 		} catch (error) {
 			console.error('Error:', error)
 		}
@@ -128,12 +101,6 @@ function AppointmentTable() {
 
 	return (
 		<div className="relative flex flex-col items-center justify-center gap-5">
-			<button
-				className="absolute left-[-100px] top-1 flex items-center justify-center gap-2 rounded bg-blue-500 px-3 py-1 text-white"
-				onClick={() => setCreatePopup(true)}
-			>
-				<PiPlusCircleBold /> New
-			</button>
 			<table className="w-[1000px]  bg-white">
 				<thead>
 					<tr className="*:border *:border-[#aaaaaa] *:bg-gray-200 *:p-2">
@@ -147,7 +114,7 @@ function AppointmentTable() {
 						<th>
 							<button
 								className="m-auto flex items-end justify-center rounded-md text-sm leading-6 text-sky-500 hover:underline"
-								onClick={() => fetchAppointments()}
+								onClick={() => onReload()}
 							>
 								Refresh
 							</button>
@@ -155,8 +122,8 @@ function AppointmentTable() {
 					</tr>
 				</thead>
 				<tbody>
-					{userAppointments &&
-						userAppointments.map((apm) => (
+					{apmData &&
+						apmData.map((apm) => (
 							<tr
 								className={`
 									${
@@ -194,7 +161,9 @@ function AppointmentTable() {
 										<button
 											className="flex h-full w-full items-center justify-center gap-2 text-xl text-[#fc9a03]"
 											onClick={() =>
-												removeReminder(apm.reminder.id)
+												handleRemoveReminder(
+													apm.reminder.id,
+												)
 											}
 										>
 											<PiBellRingingFill />
@@ -214,7 +183,7 @@ function AppointmentTable() {
 											className={`flex h-full w-full items-center justify-center gap-2 text-xl text-[#fc9a03] ${apm.isOutdated && 'cursor-not-allowed'}`}
 											onClick={() => {
 												if (!apm.isOutdated)
-													createReminder(
+													handleCreateReminder(
 														apm.id,
 														toISOTime(
 															apm.date,
@@ -231,8 +200,8 @@ function AppointmentTable() {
 									<button
 										className={`m-auto flex h-5 w-5 items-center justify-center rounded-full text-xs leading-6 text-white transition-all hover:scale-125 ${!apm.isOutdated && 'opacity-70'} ${apm.own ? 'bg-[#e63946]' : 'bg-[#f4a261]'} `}
 										onClick={() => {
-											if (apm.own) handleRemove(apm.id)
-											else handleLeave(apm.id)
+											if (apm.own) handleRemoveApm(apm.id)
+											else handleLeaveGM(apm.id)
 										}}
 										title={
 											apm.own
@@ -251,18 +220,13 @@ function AppointmentTable() {
 						))}
 				</tbody>
 			</table>
-			{createPopup && (
-				<div
-					className="fixed left-0 top-0 flex h-dvh w-dvw items-center justify-center bg-[#00000050]"
-					onMouseDown={(e) => {
-						if (e.target === e.currentTarget) setCreatePopup(false)
-					}}
-				>
-					<AddApm />
-				</div>
-			)}
 		</div>
 	)
+}
+
+AppointmentTable.propTypes = {
+	onReload: propTypes.func,
+	apmData: propTypes.array,
 }
 
 export default AppointmentTable

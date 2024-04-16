@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { fixTime } from '../utils/dateTime'
 import ConflictTable from './ConflictTable'
+import propTypes from 'prop-types'
 
-function AddApm() {
+AddApm.propTypes = {
+	onUpdated: propTypes.func,
+}
+
+function AddApm({ onUpdated }) {
 	const currentDate = new Date()
 	currentDate.setHours(currentDate.getHours() + 7)
 	const [newApm, setNewApm] = useState({
@@ -20,7 +25,7 @@ function AddApm() {
 	const [conflict, setConflict] = useState()
 	const token = sessionStorage.getItem('token')
 
-	const createApm = async () => {
+	const handleCreateApm = async () => {
 		try {
 			const response = await fetch('http://localhost:3002/apm/create', {
 				method: 'POST',
@@ -42,7 +47,9 @@ function AddApm() {
 				setPopup(1)
 			} else if (response.status === 409) {
 				setConflict(data.data)
-				setPopup(3)
+				setPopup(2)
+			} else {
+				console.log(data)
 			}
 		} catch (error) {
 			console.error('Error:', error)
@@ -51,9 +58,9 @@ function AddApm() {
 		}
 	}
 
-	const removeApm = async (id) => {
+	const handleRemoveApm = async (id) => {
 		try {
-			const removeApm = await fetch(
+			const fetchData = await fetch(
 				`http://localhost:3002/apm/remove/${id}`,
 				{
 					method: 'GET',
@@ -63,17 +70,18 @@ function AddApm() {
 					},
 				},
 			)
-			return removeApm
+			return fetchData
 		} catch (error) {
 			console.error('Error:', error)
 			alert('Error occurred, try again later')
 			window.location.reload()
 		}
 	}
-	const replaceApm = async (id) => {
+
+	const handleReplaceApm = async (id) => {
 		try {
-			const removeApm = await removeApm(id)
-			if (removeApm.status === 404) {
+			const removeApmData = await handleRemoveApm(id)
+			if (removeApmData.status === 404) {
 				await fetch(`http://localhost:3002/gmp/out/${id}`, {
 					method: 'GET',
 					headers: {
@@ -89,7 +97,7 @@ function AddApm() {
 			window.location.reload()
 		}
 
-		await createApm()
+		await handleCreateApm()
 	}
 
 	const handleSubmit = async (e) => {
@@ -111,15 +119,15 @@ function AddApm() {
 			return
 		}
 
-		const GMData = await checkGMMatch()
+		const GMData = await handleCheckGM()
 		setGM(GMData)
 		if (GMData) {
 			setPopup(3)
 		} else {
-			createApm()
+			handleCreateApm()
 		}
 	}
-	const checkGMMatch = async () => {
+	const handleCheckGM = async () => {
 		try {
 			const response = await fetch('http://localhost:3002/apm/check', {
 				method: 'POST',
@@ -144,7 +152,7 @@ function AddApm() {
 		}
 	}
 
-	const joinGM = async (ampId) => {
+	const handleJoinGM = async (ampId) => {
 		try {
 			const response = await fetch(
 				`http://localhost:3002/gmp/create/${ampId}`,
@@ -272,7 +280,7 @@ function AddApm() {
 								</p>
 								<button
 									className="w-[100px] self-center rounded bg-[#64CCDC] px-3 py-2 text-white"
-									onClick={() => window.location.reload()}
+									onClick={onUpdated}
 								>
 									Close
 								</button>
@@ -283,7 +291,7 @@ function AddApm() {
 								conflict={conflict}
 								newApm={newApm}
 								onClose={() => setPopup(0)}
-								onReplace={() => replaceApm(conflict.id)}
+								onReplace={() => handleReplaceApm(conflict.id)}
 								popup={popup}
 							/>
 						)}
@@ -292,8 +300,8 @@ function AddApm() {
 								conflict={GM}
 								newApm={newApm}
 								onClose={() => setPopup(0)}
-								onReplace={() => joinGM(GM.id)}
-								onCreate={() => createApm()}
+								onReplace={() => handleJoinGM(GM.id)}
+								onCreate={() => handleCreateApm()}
 								popup={popup}
 							/>
 						)}
@@ -303,8 +311,8 @@ function AddApm() {
 								newApm={GM}
 								onClose={() => setPopup(0)}
 								onReplace={() => {
-									removeApm(conflict.id)
-									joinGM(GM.id)
+									handleRemoveApm(conflict.id)
+									handleJoinGM(GM.id)
 								}}
 								popup={popup}
 							/>
