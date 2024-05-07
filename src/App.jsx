@@ -20,6 +20,7 @@ function App() {
 		month: new Date().getMonth() + 1,
 		year: new Date().getFullYear(),
 	})
+	const [initDate, setInitDate] = useState('')
 	const currentDate = new Date()
 	currentDate.setHours(currentDate.getHours() + 7)
 
@@ -99,8 +100,14 @@ function App() {
 
 	const handleUpdated = async () => {
 		setPopup(0)
-		handleGetApms
+		handleGetApms()
 	}
+
+	const handleClickCreate = (date) => {
+		setInitDate(date)
+		setPopup(3)
+	}
+
 	return (
 		<div className="flex w-full flex-col flex-wrap items-center justify-center gap-4 p-5 pt-20">
 			<Navbar
@@ -117,7 +124,7 @@ function App() {
 				>
 					<button
 						className="absolute left-[-100px] top-0 flex items-center justify-center gap-2 rounded bg-blue-500 px-3 py-1 text-white"
-						onClick={() => setPopup(3)}
+						onClick={() => handleClickCreate('')}
 					>
 						<PiPlusCircleBold /> New
 					</button>
@@ -181,6 +188,9 @@ function App() {
 				<Calendar
 					pickedDate={calendarDate}
 					apmData={userAppointments}
+					onClickDate={(date) => {
+						handleClickCreate(date)
+					}}
 				/>
 			)}
 			{user.id === 0 && <UserTable />}
@@ -195,7 +205,9 @@ function App() {
 				>
 					{popup === 1 && <SigninForm />}
 					{popup === 2 && <LoginForm />}
-					{popup === 3 && <AddApm onUpdated={handleUpdated} />}
+					{popup === 3 && (
+						<AddApm onUpdated={handleUpdated} initDate={initDate} />
+					)}
 				</div>
 			)}
 		</div>

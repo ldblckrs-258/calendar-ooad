@@ -1,17 +1,17 @@
 import { monthCalendar, formatTime } from '../utils/dateTime'
-import { useState } from 'react'
 import propTypes from 'prop-types'
 import '../styles/Calendar.css'
 import { PiCalendarCheckFill } from 'react-icons/pi'
 
-const Calendar = ({ pickedDate, apmData }) => {
+const Calendar = ({ pickedDate, apmData, onClickDate }) => {
 	const weeksList = monthCalendar(pickedDate.month, pickedDate.year)
-	console.log(weeksList)
+
 	const currentDate = new Date()
 	const isThisMonth =
 		currentDate.getMonth() + 1 == pickedDate.month &&
 		currentDate.getFullYear() == pickedDate.year
-	console.log(apmData)
+
+	const padWithZero = (number) => (number < 10 ? '0' + number : number)
 	return (
 		<div className="calendar flex flex-col">
 			<table className="mx-auto w-[800px]">
@@ -36,6 +36,12 @@ const Calendar = ({ pickedDate, apmData }) => {
 								<td
 									key={index}
 									className={`${!item.isThisMonth ? 'bg-[#eeeeee] text-[#bbbbbb]' : 'hover:bg-[#dff7ff]'} ${item.day == currentDate.getUTCDate() && isThisMonth && 'bg-[#89c2d9]'} `}
+									onClick={() => {
+										if (item.isThisMonth)
+											onClickDate(
+												`${pickedDate.year}-${padWithZero(pickedDate.month)}-${padWithZero(item.day)}`,
+											)
+									}}
 								>
 									{item.day}
 									<div className="absolute right-1 top-1 flex w-full justify-end overflow-hidden text-lg">
@@ -76,6 +82,7 @@ const Calendar = ({ pickedDate, apmData }) => {
 Calendar.propTypes = {
 	pickedDate: propTypes.object,
 	apmData: propTypes.array,
+	onClickDate: propTypes.func,
 }
 
 export default Calendar

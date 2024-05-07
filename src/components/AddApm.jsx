@@ -5,21 +5,23 @@ import propTypes from 'prop-types'
 
 AddApm.propTypes = {
 	onUpdated: propTypes.func,
+	initDate: propTypes.string,
 }
 
-function AddApm({ onUpdated }) {
+function AddApm({ onUpdated, initDate = '' }) {
 	const currentDate = new Date()
 	currentDate.setHours(currentDate.getHours() + 7)
 	const [newApm, setNewApm] = useState({
 		title: '',
 		location: '',
-		date: currentDate.toISOString().slice(0, 10),
+		date: initDate || currentDate.toISOString().slice(0, 10),
 		startTime: currentDate.toISOString().slice(11, 16),
 		endTime: new Date(currentDate.getTime() + 30 * 60000)
 			.toISOString()
 			.slice(11, 16),
 		isGroup: false,
 	})
+	const [reminder, setReminder] = useState(undefined)
 	const [GM, setGM] = useState()
 	const [popup, setPopup] = useState(0)
 	const [conflict, setConflict] = useState()
@@ -44,6 +46,9 @@ function AddApm({ onUpdated }) {
 			})
 			const data = await response.json()
 			if (response.status === 200) {
+				if (reminder) {
+					handleCreateReminder(data.data.id, reminder)
+				}
 				setPopup(1)
 			} else if (response.status === 409) {
 				setConflict(data.data)
@@ -89,7 +94,7 @@ function AddApm({ onUpdated }) {
 						Authorization: `Bearer ${token}`,
 					},
 				})
-				setPopup(0)
+				setPopup(1)
 			}
 		} catch (error) {
 			console.error('Error:', error)
@@ -166,6 +171,9 @@ function AddApm({ onUpdated }) {
 			)
 			const data = await response.json()
 			if (response.status === 201) {
+				if (reminder) {
+					handleCreateReminder(data.data.apmId, reminder)
+				}
 				setPopup(1)
 			} else if (response.status === 409) {
 				setConflict(data.data)
@@ -177,6 +185,24 @@ function AddApm({ onUpdated }) {
 			console.error('Error:', error)
 			alert('Error occurred, try again later')
 			window.location.reload()
+		}
+	}
+
+	const handleCreateReminder = async (apmId, duration) => {
+		try {
+			await fetch(`http://localhost:3002/reminder/insert`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					apmId,
+					duration,
+				}),
+			})
+		} catch (error) {
+			console.error('Error:', error)
 		}
 	}
 
@@ -249,15 +275,33 @@ function AddApm({ onUpdated }) {
 						required
 					/>
 				</div>
-				<label className="flex items-center gap-2">
-					<input
-						type="checkbox"
-						checked={newApm.isGroup}
-						onChange={(e) => {
-							setNewApm({ ...newApm, isGroup: e.target.checked })
-						}}
-					/>
-					<span>Group Meeting</span>
+				<label className="item-center flex w-full justify-between gap-2">
+					<div className="flex items-center gap-2">
+						<input
+							type="checkbox"
+							checked={newApm.isGroup}
+							onChange={(e) => {
+								setNewApm({
+									...newApm,
+									isGroup: e.target.checked,
+								})
+							}}
+						/>
+						<span className="text-sm">Group Meeting</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<p className="text-sm">Reminder</p>
+						<input
+							className="w-20 rounded-md border border-gray-200 px-3 py-1 text-sm"
+							type="number"
+							value={reminder}
+							onChange={(e) => {
+								setReminder(e.target.value)
+							}}
+							placeholder="None"
+						/>
+						<p className="text-sm">mins</p>
+					</div>
 				</label>
 				<button
 					type="submit"

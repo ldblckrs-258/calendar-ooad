@@ -1,12 +1,6 @@
-import { useState } from 'react'
 import { PiTrashSimpleFill, PiArrowFatLinesRightFill } from 'react-icons/pi'
 import propTypes from 'prop-types'
-import {
-	toISOTime,
-	formatTime,
-	minutesDuration,
-	timeBefore,
-} from '../utils/dateTime'
+import { toISOTime, formatTime, minutesDuration } from '../utils/dateTime'
 import { PiBellSimple, PiBellRingingFill } from 'react-icons/pi'
 
 const AppointmentTable = ({ onReload, apmData }) => {
@@ -30,12 +24,11 @@ const AppointmentTable = ({ onReload, apmData }) => {
 		onReload()
 	}
 
-	const handleCreateReminder = async (apmId, apmTime) => {
-		const mins = prompt(
+	const handleCreateReminder = async (apmId) => {
+		const duration = prompt(
 			'Enter reminder time in minutes before the appointment',
 		)
-		if (mins) {
-			const time = timeBefore(apmTime, mins)
+		if (duration) {
 			try {
 				const response = await fetch(
 					`http://localhost:3002/reminder/insert`,
@@ -47,7 +40,7 @@ const AppointmentTable = ({ onReload, apmData }) => {
 						},
 						body: JSON.stringify({
 							apmId,
-							time,
+							duration,
 						}),
 					},
 				)
@@ -168,14 +161,7 @@ const AppointmentTable = ({ onReload, apmData }) => {
 										>
 											<PiBellRingingFill />
 											<p className="text-sm text-black">
-												{minutesDuration(
-													apm.reminder.time,
-													toISOTime(
-														apm.date,
-														apm.startTime,
-													),
-												)}{' '}
-												mins
+												{apm.reminder.duration} mins
 											</p>
 										</button>
 									) : (

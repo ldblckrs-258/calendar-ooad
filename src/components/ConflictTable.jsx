@@ -23,7 +23,7 @@ function ConflictTable({
 			<p className="w-full text-center text-base ">
 				{(popup === 2 || popup === 4) &&
 					'Conflict with existing appointment!'}
-				{popup === 3 && 'Conflict with group meeting!'}
+				{popup === 3 && 'Group meeting match found!'}
 			</p>
 			<table className="w-full bg-white text-sm">
 				<thead>
